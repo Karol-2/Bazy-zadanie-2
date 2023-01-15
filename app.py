@@ -1,8 +1,7 @@
 from flask import Flask, jsonify, request
 from neo4j import GraphDatabase
 from dotenv import load_dotenv
-import os  # provides ways to access the Operating System and allows us to read the environment variables
-
+import os
 load_dotenv()
 
 app = Flask(__name__)
@@ -13,7 +12,7 @@ password = os.getenv("PASSWORD")
 driver = GraphDatabase.driver("bolt://localhost:7687", auth=("neo4j", "test1234"), database="neo4j")
 
 
-# 3) prawie
+# 3)
 @app.route("/employees", methods=["GET"])
 def get_employees():
     with driver.session() as session:
@@ -153,7 +152,7 @@ def get_employee_department(employee_id):
     return jsonify(department)
 
 
-# 9) nie działa w pełni
+# 9)
 @app.route("/departments", methods=["GET"])
 def get_departments():
     name = request.args.get("name")
@@ -182,7 +181,7 @@ def get_departments():
     return jsonify(departments)
 
 
-# 10) powinien myślę działąć ale nie działa
+# 10)
 @app.route("/departments/<department_id>/employees", methods=["GET"])
 def get_employees_by_department(department_id):
     query = f"MATCH (e:Employee)-[:WORKS_IN]->(d:Department) WHERE d.id = {int(department_id)} RETURN e.first_name as first_name, e.last_name as last_name, e.age as age, e.role as role"
