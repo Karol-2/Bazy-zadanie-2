@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request
 from neo4j import GraphDatabase
+
 from dotenv import load_dotenv
 import os
 load_dotenv()
@@ -139,17 +140,18 @@ def get_subordinates(id):
 # 8)
 @app.route("/employees/<employee_id>/department", methods=["GET"])
 def get_employee_department(employee_id):
-    query = f"MATCH (e:Employee)-[:WORKS_IN]->(d:Department) WHERE e.id = {employee_id} RETURN d.name as department_name, d.number_of_employees as number_of_employees, d.manager as manager"
+    query = f"MATCH (e:Employee)-[:WORKS_IN]->(d:Department) WHERE e.id = {employee_id} MATCH (d)-[:WORKS_IN]->(e:Employee) RETURN d.name as department_name, COUNT(e) as number_of_employees, d.manager as manager"
     with driver.session() as session:
         result = session.run(query)
-        department = {}
+        departments = []
         for record in result:
             department = {
                 "department_name": record["department_name"],
                 "number_of_employees": record["number_of_employees"],
                 "manager": record["manager"]
             }
-    return jsonify(department)
+            departments.append(department)
+    return jsonify(departments)
 
 
 # 9)
@@ -159,15 +161,13 @@ def get_departments():
     sort_by = request.args.get("sort_by")
 
     query = "MATCH (d:Department)"
-    if name:
+    if name and sort_by:
+        query += f" WHERE d.name CONTAINS '{name}' WITH d ORDER BY d.{sort_by}"
+    elif name:
         query += f" WHERE d.name CONTAINS '{name}'"
-        if sort_by:
-            query += f" WITH d ORDER BY d.{sort_by} "
-    else:
-        if sort_by:
-            query += f" ORDER BY d.{sort_by} "
-        else:
-            query += " ORDER BY d.name"
+    elif sort_by:
+        query += f" WITH d ORDER BY d.{sort_by} "
+
     query += " RETURN d.name as name, COUNT(d) as number_of_employees"
     with driver.session() as session:
         result = session.run(query)
